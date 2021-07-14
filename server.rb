@@ -1,10 +1,10 @@
 require 'socket'
 
 class SimpleServer
-  def initialize(app, server_name, port, is_https: false)
+  def initialize(app, server_name: nil, port: nil, is_https: false)
     @app = app
-    @server_name = server_name
-    @port = port
+    @server_name = server_name || 'localhost'
+    @port = port || 3000
     @is_https = is_https
   end
 
