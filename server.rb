@@ -1,7 +1,7 @@
 require 'socket'
 
 class SimpleServer
-  def initialize(app, server_name: 'localhost', port: 4000, is_https: false)
+  def initialize(app, server_name, port, is_https: false)
     @app = app
     @server_name = server_name
     @port = port
@@ -23,7 +23,9 @@ class SimpleServer
       status, raw_headers, body = @app.call(env)
 
       # prepare response & close connection
-      socket.print generate_response(status, raw_headers, body)
+      socket.write generate_response_header(status, raw_headers)
+      body.each { |part| socket.write(part) }
+      body.close
       socket.close
     end
   end
@@ -60,13 +62,13 @@ class SimpleServer
 
   def generate_env(method, query_string, path, headers, body)
     { 'REQUEST_METHOD'    => method,
-      'SCRIPT_NAME'       => '/',
+      'SCRIPT_NAME'       => '',
       'PATH_INFO'       => path,
-      'QUERY_STRING'      => query_string,
+      'QUERY_STRING'      => query_string || '',
       'SERVER_NAME'       => @server_name,
-      'SERVER_PORT'       => @port,
+      'SERVER_PORT'       => @port.to_s,
       'rack.version'      => [1, 3],
-      'rack.input'        => body,
+      'rack.input'        => StringIO.new(body.encode(Encoding::ASCII_8BIT)),
       'rack.errors'       => STDERR,
       'rack.multithread'  => false,
       'rack.multiprocess' => false,
@@ -74,13 +76,12 @@ class SimpleServer
       'rack.url_scheme'   => @is_https ? 'https' : 'http' }.merge(headers)
   end
 
-  def generate_response(status, raw_headers, body)
+  def generate_response_header(status, raw_headers)
     headers = raw_headers.transform_keys(&:downcase)
     content_type = headers['content-type'] || 'text/html'
 
     "HTTP/1.1 #{status}\r\n" +
     "Content-Type: #{content_type}\r\n" +
-    "\r\n" +
-    body
+    "\r\n"
   end
 end
