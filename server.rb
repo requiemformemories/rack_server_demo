@@ -78,10 +78,11 @@ class SimpleServer
 
   def generate_response_header(status, raw_headers)
     headers = raw_headers.transform_keys(&:downcase)
-    content_type = headers['content-type'] || 'text/html'
+    headers['content-type'] ||= 'text/html'
+    headers_to_string = headers.map { |k, v| "#{k}: #{v}" }.join("\n")
 
     "HTTP/1.1 #{status}\r\n" +
-    "Content-Type: #{content_type}\r\n" +
-    "\r\n"
+      headers_to_string +
+      "\r\n\r\n"
   end
 end
